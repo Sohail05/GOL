@@ -362,10 +362,10 @@
             document.addEventListener('mouseup', onDocumentMouseUp, false);
             active = true;
 
-            if (event.which  == '1') {
+            if (event.which == '1') {
                 //LEFT MOUSE CLICK
                 CellLife = true;
-            } else if (event.which  == '3') {
+            } else if (event.which == '3') {
                 //LEFT MOUSE CLICK
                 CellLife = false;
             }
@@ -384,7 +384,7 @@
         function inputKey(e) {
             "use strict";
             e = e || window.event;
-console.log(e.keyCode);
+            console.log(e.keyCode);
             if (e.keyCode == '13') {
                 //Enter
                 if (enable == true) {
