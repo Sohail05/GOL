@@ -1,0 +1,264 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>WebGL Game Of Life</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/vendor/modernizr-2.8.3.min.js"></script>
+    <script src="js/three.min.js"></script>
+    <script src="js/vendor/jquery-1.11.2.min.js"></script>
+</head>
+
+<body>
+
+    <script>
+        var scene, camera, renderer;
+        var geometry, material, mesh;
+        var center;
+        var BlackColor, WhiteColor;
+        var unit = 25;
+        var gridWidth = 50,
+            gridHeight = 50;
+        var raycaster, mouse;
+        var active = false;
+
+
+        init();
+        animate();
+
+        function init() {
+            "use strict";
+
+
+            scene = new THREE.Scene();
+
+            //Listenners
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            document.addEventListener('mousemove', onDocumentMouseMove, false);
+
+            //Scene View
+            camera = new THREE.OrthographicCamera(-window.innerWidth, window.innerWidth, -window.innerHeight, window.innerHeight,
+                1, 10000);
+
+            camera.position.z = 100;
+            center = new THREE.Vector2(1.5, 1.5);
+
+            //Plane Geometry
+            geometry = new THREE.PlaneGeometry(unit * gridWidth, unit * gridHeight, gridWidth, gridHeight);
+
+            BlackColor = new THREE.Color(0, 0, 0)
+            WhiteColor = new THREE.Color(1, 1, 1)
+
+            material = new THREE.MeshBasicMaterial({
+                vertexColors: THREE.FaceColors,
+                side: THREE.DoubleSide
+            });
+
+
+            mesh = new THREE.Mesh(geometry, material);
+
+            scene.add(mesh);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setClearColor(0xaaaaaa);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            document.addEventListener('mousedown', onDocumentMouseDown, false);
+
+        }
+
+        function animate() {
+            "use strict";
+            requestAnimationFrame(animate);
+
+
+            CastRay();
+            Simulation();
+            renderer.render(scene, camera);
+            //mesh.rotation.x += 0.1;
+
+        }
+
+
+
+        function Simulation() {
+
+
+            /* Rules
+1.   live cell < 2 live neighbours = dead
+2.   live cell with 2 ~ 3 = live 
+3.   live cell with 3 or more = die
+3.   death cell with 3  = live
+    
+*/
+            for (var i = 0; i < ((gridHeight * gridWidth) * 2); i += 2) {
+
+                GetNeighboursCount(i);
+                // mesh.geometry.faces[i].face
+            }
+
+        }
+
+
+
+        function GetNeighboursCount(index) {
+
+            var count = 0;
+
+            //Left
+            //Check if we are at the left
+            if (index % (gridWidth * 2) != 0) {
+
+                //  SetPairColor(index);
+
+            }
+
+
+            //Right
+            //Check if we are at the Right
+            if ((index + 2) % (gridHeight * 2) != 0) {
+
+                //  SetPairColor(index);
+
+            }
+
+            //Top
+            //Check if we are at the Top
+            if (index < (gridHeight * gridWidth) * 2 - gridWidth * 2) {
+
+                // SetPairColor(index);
+
+            }
+
+            //Buttom
+            //Check if we are at the Buttom
+            if (index > gridWidth * 2 - 1) {
+
+                //  SetPairColor(index);
+            }
+
+
+            //TopLeft
+            //Check if we are at the TopLeft
+            if ((index < (gridHeight * gridWidth) * 2 - gridWidth * 2) && (index % (gridWidth * 2) != 0)) {
+                // SetPairColor(index);
+            }
+
+            //TopRight
+            //Check if we are at the TopRight
+            if ((index < (gridHeight * gridWidth) * 2 - gridWidth * 2) && ((index + 2) % (gridHeight * 2) != 0)) {
+                //SetPairColor(index);
+            }
+
+
+            //ButtomLeft
+            //Check if we are at the Buttom
+            if ((index > gridWidth * 2 - 1) && (index % (gridWidth * 2) != 0)) {
+
+               // SetPairColor(index);
+            }
+            
+            //ButtomLeft
+            //Check if we are at the Buttom
+            if ((index > gridWidth * 2 - 1) && ((index + 2) % (gridHeight * 2) != 0)) {
+
+                //SetPairColor(index);
+            }
+
+
+        }
+
+
+
+        function SetPairColor(index) {
+
+            mesh.geometry.faces[index].color = new THREE.Color(0xff0000);
+            mesh.geometry.faces[SisterIndex(index)].color = new THREE.Color(0xff0000);
+        }
+
+
+        function CastRay() {
+
+            raycaster.setFromCamera(mouse, camera);
+
+            var intersects = raycaster.intersectObject(mesh);
+
+            if ((intersects.length > 0) && (active == true)) {
+
+                //var intersect = intersects[0];
+                //var face = intersect.face;
+                console.log(intersects[0]);
+
+                //Change triangle color
+                intersects[0].face.color = new THREE.Color(0xff0000);
+                //Change sister triangle as well
+                mesh.geometry.faces[SisterIndex(intersects[0].faceIndex)].color = new THREE.Color(0xff0000);
+                mesh.geometry.colorsNeedUpdate = true
+
+            }
+        }
+
+        function SisterIndex(index) {
+            if (isEven(index)) {
+                return index + 1
+            } else {
+                return index - 1
+            }
+        }
+
+        function isEven(value) {
+            if (value % 2 == 0)
+                return true;
+            else
+                return false;
+        }
+
+        function onDocumentMouseMove(event) {
+
+            event.preventDefault();
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        }
+
+        function onDocumentMouseDown(event) {
+
+            event.preventDefault();
+
+            document.addEventListener('mouseup', onDocumentMouseUp, false);
+
+
+            active = true;
+
+        }
+
+
+        function onDocumentMouseUp(event) {
+
+            document.removeEventListener('mouseup', onDocumentMouseUp, false);
+
+            active = false;
+        }
+    </script>
+
+
+
+
+    <!--   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>-->
+    <script>
+        window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')
+    </script>
+    <script src="js/plugins.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
