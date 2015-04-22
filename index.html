@@ -19,97 +19,146 @@
 
     <script>
         var scene, camera, renderer;
-        var geometry, material, mesh;
-        var center;
-        var BlackColor, WhiteColor;
+        var geometry, material, plane, planeHolder;
+        var DeadColor, LifeColor;
         var unit = 25;
-        var gridWidth = 50,
-            gridHeight = 50;
+        var gridWidth = 5,
+            gridHeight = 5;
         var raycaster, mouse;
         var active = false;
-
+        var deactive = false;
+        var enable = false;
+        var fps, fpsInterval, startTime, now, then, elapsed;
 
         init();
-        animate();
+         //frame rate
+        startAnimating(2);
+        document.onkeydown = inputKey;
 
         function init() {
             "use strict";
 
-
+            //Scene
             scene = new THREE.Scene();
-
-            //Listenners
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-            document.addEventListener('mousemove', onDocumentMouseMove, false);
-
-            //Scene View
-            camera = new THREE.OrthographicCamera(-window.innerWidth, window.innerWidth, -window.innerHeight, window.innerHeight,
-                1, 10000);
-
+            camera = new THREE.OrthographicCamera(-window.innerWidth, window.innerWidth, -window.innerHeight, window.innerHeight, 1, 10000);
             camera.position.z = 100;
-            center = new THREE.Vector2(1.5, 1.5);
 
-            //Plane Geometry
+
+
+            //Color black = dead , white = alive
+            DeadColor = new THREE.Color(0, 0, 0);
+            LifeColor = new THREE.Color(1, 1, 1);
+
+            //Plane Geometry & Material
             geometry = new THREE.PlaneGeometry(unit * gridWidth, unit * gridHeight, gridWidth, gridHeight);
-
-            BlackColor = new THREE.Color(0, 0, 0)
-            WhiteColor = new THREE.Color(1, 1, 1)
-
             material = new THREE.MeshBasicMaterial({
                 vertexColors: THREE.FaceColors,
                 side: THREE.DoubleSide
             });
 
+            plane = new THREE.Mesh(geometry, material);
+            
 
-            mesh = new THREE.Mesh(geometry, material);
-
-            scene.add(mesh);
 
             renderer = new THREE.WebGLRenderer();
-            renderer.setClearColor(0xaaaaaa);
+            renderer.setClearColor(new THREE.Color(0xaaaaaa));
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
+            //Listenners
             document.addEventListener('mousedown', onDocumentMouseDown, false);
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            document.addEventListener('mousemove', onDocumentMouseMove, false);
+
+            //Make sure plane is set all to dead
+            planeHolder = new THREE.Mesh(geometry.clone(), material.clone());
+            for (var i = 0; i < ((gridHeight * gridWidth) * 2); i += 2) {
+
+                SetPairColor(i, DeadColor);
+                plane.geometry.faces[i].color.set(DeadColor);
+                plane.geometry.faces[SisterIndex(i)].color.set(DeadColor);
+
+            }
+            plane.geometry.colorsNeedUpdate = true;
+            planeHolder.geometry.colorsNeedUpdate = true;
+            scene.add(plane);
 
         }
+
+        function startAnimating(fps) {
+            "use strict";
+
+            fpsInterval = 1000 / fps;
+            then = Date.now();
+            startTime = then;
+            animate();
+        }
+
 
         function animate() {
             "use strict";
             requestAnimationFrame(animate);
+            
+            now = Date.now();
+            elapsed = now - then;
 
+            if (elapsed > fpsInterval) {
+
+                then = now - (elapsed % fpsInterval);
+
+                if (enable == true) {
+
+                    Simulation();
+                    scene.remove(plane);
+                    plane = null;
+                    plane = planeHolder.clone();
+                    planeHolder = new THREE.Mesh(geometry.clone(), material.clone());
+
+                    scene.add(plane);
+
+                    plane.geometry.colorsNeedUpdate = true;
+                }
+
+            }
 
             CastRay();
-            Simulation();
             renderer.render(scene, camera);
-            //mesh.rotation.x += 0.1;
 
         }
 
 
 
-        function Simulation() {
-
-
-            /* Rules
+        /* Rules
 1.   live cell < 2 live neighbours = dead
 2.   live cell with 2 ~ 3 = live 
 3.   live cell with 3 or more = die
-3.   death cell with 3  = live
-    
+3.   death cell with 3  = live    
 */
+        function Simulation() {
+            "use strict";
+
             for (var i = 0; i < ((gridHeight * gridWidth) * 2); i += 2) {
 
-                GetNeighboursCount(i);
-                // mesh.geometry.faces[i].face
+                var count = GetNeighboursCount(i);
+
+                if ((count < 2) || (count > 3)) {
+
+                    SetPairColor(i, DeadColor);
+
+                } else if (count == 3) {
+
+                    SetPairColor(i, LifeColor);
+
+                }
+
             }
 
         }
 
 
-
         function GetNeighboursCount(index) {
+            "use strict";
 
             var count = 0;
 
@@ -117,16 +166,17 @@
             //Check if we are at the left
             if (index % (gridWidth * 2) != 0) {
 
-                //  SetPairColor(index);
+                // SetPairColor(index);
+                count += GetCount(index - 2);
 
             }
-
 
             //Right
             //Check if we are at the Right
             if ((index + 2) % (gridHeight * 2) != 0) {
 
-                //  SetPairColor(index);
+                // SetPairColor(index);
+                count += GetCount(index + 2);
 
             }
 
@@ -135,6 +185,7 @@
             if (index < (gridHeight * gridWidth) * 2 - gridWidth * 2) {
 
                 // SetPairColor(index);
+                count += GetCount(index + gridWidth * 2);
 
             }
 
@@ -143,70 +194,95 @@
             if (index > gridWidth * 2 - 1) {
 
                 //  SetPairColor(index);
+                count += GetCount(index - gridWidth * 2);
             }
-
 
             //TopLeft
             //Check if we are at the TopLeft
             if ((index < (gridHeight * gridWidth) * 2 - gridWidth * 2) && (index % (gridWidth * 2) != 0)) {
                 // SetPairColor(index);
+                count += GetCount(index + gridWidth * 2 - 2);
             }
 
             //TopRight
             //Check if we are at the TopRight
             if ((index < (gridHeight * gridWidth) * 2 - gridWidth * 2) && ((index + 2) % (gridHeight * 2) != 0)) {
                 //SetPairColor(index);
+                count += GetCount(index + gridWidth * 2 + 2);
             }
 
-
             //ButtomLeft
-            //Check if we are at the Buttom
+            //Check if we are at the ButtomLeft
             if ((index > gridWidth * 2 - 1) && (index % (gridWidth * 2) != 0)) {
 
-               // SetPairColor(index);
+                // SetPairColor(index);
+                count += GetCount(index - gridWidth * 2 - 2);
             }
-            
-            //ButtomLeft
-            //Check if we are at the Buttom
+
+            //ButtomRight
+            //Check if we are at the ButtomRight
             if ((index > gridWidth * 2 - 1) && ((index + 2) % (gridHeight * 2) != 0)) {
 
                 //SetPairColor(index);
+                count += GetCount(index - gridWidth * 2 + 2);
             }
 
+            return count;
+        }
 
+        function GetCount(index) {
+            "use strict";
+
+            if (plane.geometry.faces[index].color.getHex() == LifeColor.getHex()) {
+                return 1;
+            }
+            return 0;
         }
 
 
 
-        function SetPairColor(index) {
+     /*   function SetPairColor(index) {
+            "use strict";
 
-            mesh.geometry.faces[index].color = new THREE.Color(0xff0000);
-            mesh.geometry.faces[SisterIndex(index)].color = new THREE.Color(0xff0000);
+            planeHolder.geometry.faces[index].color.set( LifeColor);
+            planeHolder.geometry.faces[SisterIndex(index)].color.set( LifeColor);
+            mesh.geometry.colorsNeedUpdate = true;
+        }*/
+
+
+        function SetPairColor(index, color) {
+            "use strict";
+
+            planeHolder.geometry.faces[index].color.set(color);
+            planeHolder.geometry.faces[SisterIndex(index)].color.set(color);
+            planeHolder.geometry.colorsNeedUpdate = true;
         }
 
 
         function CastRay() {
+            "use strict";
 
             raycaster.setFromCamera(mouse, camera);
-
-            var intersects = raycaster.intersectObject(mesh);
+            var intersects = raycaster.intersectObject(plane);
 
             if ((intersects.length > 0) && (active == true)) {
 
-                //var intersect = intersects[0];
-                //var face = intersect.face;
-                console.log(intersects[0]);
-
                 //Change triangle color
-                intersects[0].face.color = new THREE.Color(0xff0000);
+                //intersects[0].face.color;
                 //Change sister triangle as well
-                mesh.geometry.faces[SisterIndex(intersects[0].faceIndex)].color = new THREE.Color(0xff0000);
-                mesh.geometry.colorsNeedUpdate = true
+                //intersects[0].face.color = LifeColor.clone();
+                plane.geometry.faces[intersects[0].faceIndex].color.set(LifeColor);
+                plane.geometry.faces[SisterIndex(intersects[0].faceIndex)].color.set(LifeColor);
+                plane.geometry.colorsNeedUpdate = true;
 
             }
         }
 
+        
+        
+        //Helper function
         function SisterIndex(index) {
+            "use strict";
             if (isEven(index)) {
                 return index + 1
             } else {
@@ -215,38 +291,55 @@
         }
 
         function isEven(value) {
+            "use strict";
             if (value % 2 == 0)
                 return true;
             else
                 return false;
         }
 
+        
+        //Input Functions
+        
         function onDocumentMouseMove(event) {
+            "use strict";
 
             event.preventDefault();
-
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
         }
 
         function onDocumentMouseDown(event) {
+            "use strict";
 
             event.preventDefault();
-
             document.addEventListener('mouseup', onDocumentMouseUp, false);
-
-
             active = true;
 
         }
 
 
         function onDocumentMouseUp(event) {
+            "use strict";
 
             document.removeEventListener('mouseup', onDocumentMouseUp, false);
-
             active = false;
+        }
+
+
+        function inputKey(e) {
+            "use strict";
+            e = e || window.event;
+
+            if (e.keyCode == '13') {
+                //Enter
+                if (enable == true) {
+                    enable = false;
+                } else {
+                    enable = true;
+                }
+            }
         }
     </script>
 
