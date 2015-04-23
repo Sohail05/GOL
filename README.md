@@ -18,7 +18,7 @@ MOUSE BUTTONS:
 
 [LMB] Left Mouse button — Draw Dead Cell
 
-[RMB] Middle Mouse button — Draw Live Cell
+[MMB] Middle Mouse button — Draw Live Cell
 
 
 
