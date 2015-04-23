@@ -24,6 +24,7 @@ MOUSE BUTTONS:
 
 # Todo
 
+- Implement Buffer Swap (instead of allocation)
 - Add Sounds
 - Mobile Support
 - Resolution Settings

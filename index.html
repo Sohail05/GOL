@@ -43,10 +43,11 @@
         var DrawCell;
         var enable;
         var fps, fpsInterval, startTime, now, then, elapsed;
-
-         //For degugging
-        var test = [];
         var CellLife = true;
+        
+        //For degugging
+        //var test = [];
+        
 
         init();
          //frame rate
@@ -65,8 +66,8 @@
             enable = false;
 
             //Grid Resolution
-            gridWidth = 60;
-            gridHeight = 60;
+            gridWidth = 50;
+            gridHeight = 50;
             unit = 25; //unit size
             fps = 10;
 
@@ -103,22 +104,23 @@
             mouse = new THREE.Vector2();
 
             //Plane Buffer
-            planeHolder = new THREE.Mesh(geometry.clone(), material.clone());
+            planeHolder = new THREE.Mesh(geometry.clone(), material);
 
             //Set Death cells
             for (var i = 0; i < ((gridHeight * gridWidth) * 2); i += 2) {
 
                 SetPairColor(i, DeadColor);
-                plane.geometry.faces[i].color.set(DeadColor);
-                plane.geometry.faces[SisterIndex(i)].color.set(DeadColor);
+                plane.geometry.faces[i].color = DeadColor;
+                plane.geometry.faces[SisterIndex(i)].color = DeadColor;
                 //Debugging
-                test[i] = false;
-                test[SisterIndex(i)] = false;
+                //test[i] = false;
+                //test[SisterIndex(i)] = false;
 
             }
 
-            plane.geometry.colorsNeedUpdate = true;
-            planeHolder.geometry.colorsNeedUpdate = true;
+            
+            //plane.geometry.colorsNeedUpdate = true;
+            //planeHolder.geometry.colorsNeedUpdate = true;
             scene.add(plane);
 
         }
@@ -152,13 +154,16 @@
 
                     scene.remove(plane);
                     plane = planeHolder.clone();
+                    planeHolder = null;
                     planeHolder = new THREE.Mesh(geometry.clone(), material.clone());
                     scene.add(plane);
 
-                    plane.geometry.colorsNeedUpdate = true;
+                    //Moved out of loop
+                    //plane.geometry.colorsNeedUpdate = true;
                 }
 
             }
+            plane.geometry.colorsNeedUpdate = true;
             renderer.render(scene, camera);
 
         }
@@ -290,21 +295,10 @@
         function SetPairColor(index, color) {
             "use strict";
 
-            planeHolder.geometry.faces[index].color.set(color);
-            planeHolder.geometry.faces[SisterIndex(index)].color.set(color);
-            planeHolder.geometry.colorsNeedUpdate = true;
-
-            var hex = color.getHex();
-
-            if (hex == parseInt("FFFFFF", 16)) {
-
-                test[index] = true;
-                test[SisterIndex(index)] = true;
-            } else if (hex == parseInt("FFFFFF", 16)) {
-
-                test[index] = false;
-                test[SisterIndex(index)] = false;
-            }
+            planeHolder.geometry.faces[index].color = color;
+            planeHolder.geometry.faces[SisterIndex(index)].color = color;
+            //Not needed for now, unless we implement buffer Swaping for Memory Optimization
+            //planeHolder.geometry.colorsNeedUpdate = true;
 
         }
 
@@ -319,16 +313,17 @@
 
                 if (CellLife == true) {
 
-                    plane.geometry.faces[intersects[0].faceIndex].color.set(LifeColor);
-                    plane.geometry.faces[SisterIndex(intersects[0].faceIndex)].color.set(LifeColor);
+                    plane.geometry.faces[intersects[0].faceIndex].color = LifeColor;
+                    plane.geometry.faces[SisterIndex(intersects[0].faceIndex)].color = LifeColor;
 
                 } else {
 
-                    plane.geometry.faces[intersects[0].faceIndex].color.set(DeadColor);
-                    plane.geometry.faces[SisterIndex(intersects[0].faceIndex)].color.set(DeadColor);
+                    plane.geometry.faces[intersects[0].faceIndex].color = DeadColor;
+                    plane.geometry.faces[SisterIndex(intersects[0].faceIndex)].color = DeadColor;
                 }
-
-                plane.geometry.colorsNeedUpdate = true;
+                
+                //We'll run this only once per frame from now on
+                //plane.geometry.colorsNeedUpdate = true;
             }
         }
 
@@ -405,7 +400,6 @@
         function inputKey(event) {
             "use strict";
             event = event || window.event;
-            console.log(event.keyCode);
             if (event.keyCode == '13') {
                 //Enter
                 if (enable == true) {
