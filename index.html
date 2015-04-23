@@ -5,48 +5,77 @@
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>WebGL Game Of Life</title>
-    <meta name="description" content="">
+    <meta name="description" content="A Conway's Game of life clone made in WebGL with Three.js">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" href="css/normalize.css">
     <link rel="stylesheet" href="css/main.css">
-    <script src="js/vendor/modernizr-2.8.3.min.js"></script>
     <script src="js/three.min.js"></script>
-    <script src="js/vendor/jquery-1.11.2.min.js"></script>
+
 </head>
 
 <body>
+
+    <section id="info">
+
+        <h2>WebGL Game of Life </h2>
+
+        <p>Controls:
+            <br>&#8593; &#151; SPEED UP
+            <br>&#8595; &#151; SLOW DOWN
+            <br>[ENTER] &#151; TOOGLE SIM
+            <br>MOUSE BUTTONS
+            <br>[LMB] &#151; DEAD CELL
+            <br>[RMB] &#151; LIFE LIFE
+        </p>
+
+    </section>
+
+    <section id="bottom"><small>By <a href="http://twitter.com/S0hail05">Sohail Ajmal</a></small>
+    </section>
 
     <script>
         var scene, camera, renderer;
         var geometry, material, plane, planeHolder;
         var DeadColor, LifeColor;
-        var unit = 25;
-        var gridWidth = 50,
-            gridHeight = 50;
+        var unit, gridWidth, gridHeight;
         var raycaster, mouse;
-        var active = false;
-        var deactive = false;
-        var enable = false;
+        var DrawCell;
+        var enable;
         var fps, fpsInterval, startTime, now, then, elapsed;
-         //for degugging
+
+         //For degugging
         var test = [];
         var CellLife = true;
 
         init();
          //frame rate
-        startAnimating(10);
+        StartAnimation();
         document.onkeydown = inputKey;
+        window.onresize = WindowResize;
+
 
         function init() {
             "use strict";
+
+            //Active Mouse Draw
+            DrawCell = false;
+
+            //Enable Simulation
+            enable = false;
+
+            //Grid Resolution
+            gridWidth = 60;
+            gridHeight = 60;
+            unit = 25; //unit size
+            fps = 10;
 
             //Scene
             scene = new THREE.Scene();
             camera = new THREE.OrthographicCamera(-window.innerWidth, window.innerWidth, -window.innerHeight, window.innerHeight, 1, 10000);
             camera.position.z = 100;
 
-            //Color black = dead , white = alive
+            //Colors: black = dead , white = alive
             DeadColor = new THREE.Color(0, 0, 0);
             LifeColor = new THREE.Color(1, 1, 1);
 
@@ -59,37 +88,42 @@
 
             plane = new THREE.Mesh(geometry, material);
 
+            //Renderer
             renderer = new THREE.WebGLRenderer();
-            renderer.setClearColor(new THREE.Color(0xaaaaaa));
+            renderer.setClearColor(new THREE.Color(0xAAAAAA));
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            //Listenners
+            //Listeners
             document.addEventListener('mousemove', onDocumentMouseMove, false);
             document.addEventListener('mousedown', onDocumentMouseDown, false);
+
+            //Mouse Controls
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
 
-            //Make sure plane is set all to dead
+            //Plane Buffer
             planeHolder = new THREE.Mesh(geometry.clone(), material.clone());
+
+            //Set Death cells
             for (var i = 0; i < ((gridHeight * gridWidth) * 2); i += 2) {
 
                 SetPairColor(i, DeadColor);
                 plane.geometry.faces[i].color.set(DeadColor);
                 plane.geometry.faces[SisterIndex(i)].color.set(DeadColor);
+                //Debugging
                 test[i] = false;
                 test[SisterIndex(i)] = false;
 
             }
+
             plane.geometry.colorsNeedUpdate = true;
             planeHolder.geometry.colorsNeedUpdate = true;
             scene.add(plane);
-            //scene.add(planeHolder);
-            //planeHolder.position.x = 150;
 
         }
 
-        function startAnimating(fps) {
+        function StartAnimation() {
             "use strict";
 
             fpsInterval = 1000 / fps;
@@ -101,9 +135,9 @@
 
         function animate() {
             "use strict";
+
             requestAnimationFrame(animate);
             CastRay();
-
 
             now = Date.now();
             elapsed = now - then;
@@ -134,8 +168,8 @@
         /* Rules
 1.   live cell < 2 live neighbours = dead
 2.   live cell with 2 ~ 3 = live 
-3.   live cell with 3 or more = die
-3.   death cell with 3  = live    
+3.   live cell with >= 3  = die
+4.   death cell with = 3  = live    
 */
         function Simulation() {
             "use strict";
@@ -145,21 +179,19 @@
                 var count = GetNeighboursCount(i);
 
                 if ((count < 2) || (count > 3)) {
-
+                    //Rule 1 & 3
                     SetPairColor(i, DeadColor);
 
                 } else if (count == 3) {
-
+                    //Rule 2
                     SetPairColor(i, LifeColor);
 
                 } else if ((count == 2) && (CheckLife(i))) {
-
+                    //Rule 4  - 5 hours of debugging for this (╯°□°）╯︵ ┻━┻ 
                     SetPairColor(i, LifeColor);
 
                 }
-
             }
-
         }
 
         function CheckLife(index) {
@@ -189,39 +221,34 @@
             //Check if we are at the Right
             if ((index + 2) % (gridHeight * 2) != 0) {
 
-                // SetPairColor(index);
                 count += GetCount(index + 2);
-
             }
 
             //Top
             //Check if we are at the Top
             if (index < (gridHeight * gridWidth) * 2 - gridWidth * 2) {
 
-                // SetPairColor(index);
                 count += GetCount(index + gridWidth * 2);
-
             }
 
             //Buttom
             //Check if we are at the Buttom
             if (index > gridWidth * 2 - 1) {
 
-                //  SetPairColor(index);
                 count += GetCount(index - gridWidth * 2);
             }
 
             //TopLeft
             //Check if we are at the TopLeft
             if ((index < (gridHeight * gridWidth) * 2 - gridWidth * 2) && (index % (gridWidth * 2) != 0)) {
-                // SetPairColor(index);
+
                 count += GetCount(index + gridWidth * 2 - 2);
             }
 
             //TopRight
             //Check if we are at the TopRight
             if ((index < (gridHeight * gridWidth) * 2 - gridWidth * 2) && ((index + 2) % (gridHeight * 2) != 0)) {
-                //SetPairColor(index);
+
                 count += GetCount(index + gridWidth * 2 + 2);
             }
 
@@ -229,7 +256,6 @@
             //Check if we are at the ButtomLeft
             if ((index > gridWidth * 2 - 1) && (index % (gridWidth * 2) != 0)) {
 
-                // SetPairColor(index);
                 count += GetCount(index - gridWidth * 2 - 2);
             }
 
@@ -237,7 +263,6 @@
             //Check if we are at the ButtomRight
             if ((index > gridWidth * 2 - 1) && ((index + 2) % (gridHeight * 2) != 0)) {
 
-                //SetPairColor(index);
                 count += GetCount(index - gridWidth * 2 + 2);
             }
 
@@ -246,26 +271,20 @@
 
         function GetCount(index) {
             "use strict";
+
+            //Hex values dont seem to work in if statements ?!?!?! parse to int instead
             var hex = plane.geometry.faces[index].color.getHex();
             hex = parseInt(hex, 16);
-            //('000000'+color.getHex().toString(16)).slice(-6)
+
             var hex2 = LifeColor.getHex();
             hex2 = parseInt(hex2, 16);
+
+            //if Cell is alive
             if (hex == hex2) {
                 return 1;
             }
             return 0;
         }
-
-
-
-        /*   function SetPairColor(index) {
-            "use strict";
-
-            planeHolder.geometry.faces[index].color.set( LifeColor);
-            planeHolder.geometry.faces[SisterIndex(index)].color.set( LifeColor);
-            mesh.geometry.colorsNeedUpdate = true;
-        }*/
 
 
         function SetPairColor(index, color) {
@@ -296,36 +315,26 @@
             raycaster.setFromCamera(mouse, camera);
             var intersects = raycaster.intersectObject(plane);
 
-            if ((intersects.length > 0) && (active == true)) {
-
-                //Change triangle color
-                //intersects[0].face.color;
-                //Change sister triangle as well
-                //intersects[0].face.color = LifeColor.clone();
-
-                var setColor;
+            if ((intersects.length > 0) && (DrawCell == true)) {
 
                 if (CellLife == true) {
 
-                    setColor = LifeColor;
+                    plane.geometry.faces[intersects[0].faceIndex].color.set(LifeColor);
+                    plane.geometry.faces[SisterIndex(intersects[0].faceIndex)].color.set(LifeColor);
 
                 } else {
 
-                    setColor = DeadColor;
-
+                    plane.geometry.faces[intersects[0].faceIndex].color.set(DeadColor);
+                    plane.geometry.faces[SisterIndex(intersects[0].faceIndex)].color.set(DeadColor);
                 }
 
-
-                plane.geometry.faces[intersects[0].faceIndex].color.set(setColor);
-                plane.geometry.faces[SisterIndex(intersects[0].faceIndex)].color.set(setColor);
                 plane.geometry.colorsNeedUpdate = true;
-
             }
         }
 
 
+         //****************************************** Helper functions **************************************/
 
-         //Helper function
         function SisterIndex(index) {
             "use strict";
             if (isEven(index)) {
@@ -344,8 +353,7 @@
         }
 
 
-         //Input Functions
-
+         //****************************************** Input functions **************************************/
         function onDocumentMouseMove(event) {
             "use strict";
 
@@ -360,51 +368,70 @@
 
             event.preventDefault();
             document.addEventListener('mouseup', onDocumentMouseUp, false);
-            active = true;
+            DrawCell = true;
 
             if (event.which == '1') {
                 //LEFT MOUSE CLICK
                 CellLife = true;
-            } else if (event.which == '3') {
-                //LEFT MOUSE CLICK
+            } else if (event.which == '2') {
+                //MIDDLE MOUSE CLICK
                 CellLife = false;
             }
         }
-
 
 
         function onDocumentMouseUp(event) {
             "use strict";
 
             document.removeEventListener('mouseup', onDocumentMouseUp, false);
-            active = false;
+            DrawCell = false;
         }
 
-
-        function inputKey(e) {
+        function WindowResize(event) {
             "use strict";
-            e = e || window.event;
-            console.log(e.keyCode);
-            if (e.keyCode == '13') {
+            event = event || window.event;
+
+            //Orthographic Camera update
+            camera.left = -window.innerWidth;
+            camera.right = window.innerWidth;
+            camera.top = -window.innerHeight;
+            camera.bottom = window.innerHeight;
+
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+
+        function inputKey(event) {
+            "use strict";
+            event = event || window.event;
+            console.log(event.keyCode);
+            if (event.keyCode == '13') {
                 //Enter
                 if (enable == true) {
                     enable = false;
                 } else {
                     enable = true;
                 }
+            } else if (event.keyCode == '38') {
+                //up arrow
+                fps++;
+                if (fps > 60) {
+                    fps = 60;
+                }
+                fpsInterval = 1000 / fps;
+            } else if (event.keyCode == '40') {
+                //down arrow
+                fps--;
+                if (fps < 1) {
+                    fps = 1;
+                }
+                fpsInterval = 1000 / fps;
             }
         }
     </script>
 
-
-
-
-    <!--   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>-->
-    <script>
-        window.jQuery || document.write('<script src="js/vendor/jquery-1.11.2.min.js"><\/script>')
-    </script>
     <script src="js/plugins.js"></script>
-    <script src="js/main.js"></script>
 </body>
 
 </html>

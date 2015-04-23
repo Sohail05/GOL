@@ -96,9 +96,42 @@ textarea {
    ========================================================================== */
 
 
+#bottom{
+    
+    padding: 10px;
+    position:absolute;
+    bottom:0px;
+    border-radius: 5px;
+    color: white;
 
+}
 
+#bottom a{
+    
+    color: white;
+}
 
+#info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 10px;
+    margin: 10px;
+    width: 200px;
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 5px;
+    color: white;
+}
+#info > h2 {
+    text-align: center;
+    margin: auto;
+}
+#info > p {
+    font-size: 18px;
+    padding-left: 10px;
+    margin: auto;
+}
 
 
 
