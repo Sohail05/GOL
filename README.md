@@ -2,7 +2,8 @@
 
 Conway's Game of Life written in javascript with [Three.js](http://threejs.org/) .
 
-Live [Demo](http://polygone.xyz/GOL/) 
+Live [Demo](http://sohail05.github.io/GOL/) 
+
 ![ScreenShot](image.png)
 
 
